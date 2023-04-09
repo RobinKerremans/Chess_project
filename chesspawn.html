@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chessboard with Pawns</title>
+    <style>
+      .square {
+        width: 50px;
+        height: 50px;
+        display: inline-block;
+        vertical-align: top;
+        text-align: center;
+        font-size: 30px;
+      }
+
+      .white {
+        background-color: white;
+      }
+
+      .black {
+        background-color: gray;
+      }
+
+      .pawn {
+        background-image: url('./pawn.png');
+        background-size: 50px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chessboard"></div>
+    <script>
+      const boardSize = 8;
+      const board = document.getElementById('chessboard');
+      const pawns = [];
+
+      // Create the chessboard
+      for (let row = 0; row < boardSize; row++) {
+        for (let col = 0; col < boardSize; col++) {
+          const square = document.createElement('div');
+          square.classList.add('square');
+          square.dataset.row = row;
+          square.dataset.col = col;
+          if ((row + col) % 2 === 0) {
+            square.classList.add('white');
+            square.dataset.color = 'white';
+          } else {
+            square.classList.add('black');
+            square.dataset.color = 'black';
+          }
+          const letter = String.fromCharCode(65 + col); // Convert column index to letter
+          const number = boardSize - row; // Convert row index to number
+          //square.textContent = `${letter}${number}`; // Set the label of the square
+          board.appendChild(square);
+        }
+        const newline = document.createElement('br');
+        board.appendChild(newline);
+      }
+
+      // Create the 8 pawn pieces
+      for (let i = 0; i < 8; i++) {
+        const pawn = document.createElement('div');
+        pawn.classList.add('square', 'pawn');
+        const square = board.children[8 * (boardSize - 2) + i + 6]; // Place the pawn on the 2nd row, i-th column
+        square.appendChild(pawn);
+        pawns.push(pawn); // Add the pawn to the pawns array
+      }
+
+      // Add event listeners to the pawns and squares
+      let selectedPiece = null;
+
+      pawns.forEach((pawn) => {
+        pawn.addEventListener('click', () => {
+          selectedPiece = pawn;
+        });
+      });
+
+      board.addEventListener('click', (event) => {
+        const square = event.target;
+        if (selectedPiece && square.classList.contains('square') && !square.children.length) {
+          // Check if the selected piece is a pawn and if the move is valid
+          if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
+            square.appendChild(selectedPiece);
+            selectedPiece = null;
+          }
+        }
+      });
+
+      // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
+      function isValidPawnMove(pawn, square) {
+        const pawnRow = parseInt(pawn.parentNode.dataset.row);
+        const pawnCol = parseInt(pawn.parentNode.dataset.col);
+        const squareRow = parseInt(square.dataset.row);
+        const squareCol = parseInt(square.dataset.col);
+
+        if (squareCol !== pawnCol) {
+          // The pawn can only move in the same column
+          return false;
+        }
+
+        if (squareRow !== pawnRow - 1) {
+          return false;
+        }
+        return true;
+        }
+    </script>
+  </body>
+</html>
