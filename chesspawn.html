@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<script src="./Pawn.js"></script>
 <html>
   <head>
     <title>Chessboard with Pawns</title>
@@ -18,6 +19,10 @@
 
       .black {
         background-color: gray;
+      }
+
+      .red {
+        background-color: red;
       }
 
       .pawn {
@@ -59,21 +64,38 @@
         board.appendChild(newline);
       }
 
-      // Create the 8 pawn pieces
+      // Create the 8 black pawn pieces
       for (let i = 0; i < 8; i++) {
-        const pawn = document.createElement('div');
-        pawn.classList.add('square', 'pawn');
+        const pawn = new Pawn('black');
         const square = board.children[8 * (boardSize - 2) + i + 6]; // Place the pawn on the 2nd row, i-th column
-        square.appendChild(pawn);
-        pawns.push(pawn); // Add the pawn to the pawns array
+        square.appendChild(pawn.element);
+        pawns.push(pawn.element); // Add the pawn to the pawns array
+      }
+
+      // Create the 8 white pawn pieces
+      for (let i = 0; i < 8; i++) {
+        const pawn = new Pawn('white');
+        const square = board.children[8 * (boardSize - 6) + i - 7]; // Place the pawn on the 2nd row, i-th column
+        square.appendChild(pawn.element);
+        pawns.push(pawn.element); // Add the pawn to the pawns array
       }
 
       // Add event listeners to the pawns and squares
       let selectedPiece = null;
+      let enPassantPiece = null;
+      let enPassantTile = null;
+      let enPassant = false;
 
       pawns.forEach((pawn) => {
         pawn.addEventListener('click', () => {
-          selectedPiece = pawn;
+          if(selectedPiece == null){
+            selectedPiece = pawn;
+          }
+          // allows captures, taking turns only selects own pieces
+          if(selectedPiece.pawn.color == pawn.pawn.color){
+            //console.log(selectedPiece.pawn.color+' '+pawn.pawn.color);
+            selectedPiece = pawn;
+          }
         });
       });
 
@@ -84,8 +106,26 @@
           if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
             square.appendChild(selectedPiece);
             selectedPiece = null;
+            enPassant = false;
           }
         }
+        if (selectedPiece && square.classList.contains('pawn')) {
+          // Check if the selected piece is a pawn and if the CAPTURE is valid
+          if (selectedPiece.classList.contains('pawn') && isValidPawnCapture(selectedPiece, square)) {
+            square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
+            selectedPiece = null;
+            enPassant = false;
+          }
+        }
+        if (selectedPiece && square.dataset.color=='enPassant') {
+          //console.log(selectedPiece.classList.contains('pawn'));
+          if (selectedPiece.classList.contains('pawn') && isValidEP(selectedPiece, square)) {
+            square.appendChild(selectedPiece);
+            enPassantPiece.remove();
+            selectedPiece = null;
+          }
+        }
+
       });
 
       // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
@@ -99,12 +139,134 @@
           // The pawn can only move in the same column
           return false;
         }
-
-        if (squareRow !== pawnRow - 1) {
+        if (pawn.pawn.color == 'black') {
+          if (pawnRow - squareRow < 0) {
+          // The pawn can only move up one
           return false;
+        }
+        if (pawnRow - squareRow > 1 && pawnRow < 6) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (pawnRow - squareRow > 2 && pawnRow == 6) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (pawnRow - squareRow == 2 && pawnRow == 6) {
+          // enpassant possible
+          enPassant = true;
+          enPassantPiece = pawn;
+          enPassantTile = board.children[45+pawnCol];
+          enPassantTile.dataset.color = 'enPassant';
+        }
+        }
+        if (pawn.pawn.color == 'white') {
+          if (pawnRow - squareRow > 0) {
+          // The pawn can only move up
+          return false;
+        }
+        if (squareRow - pawnRow > 1 && pawnRow > 1) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (squareRow - pawnRow > 2 && pawnRow == 1) {
+          // The pawn can move up one or two
+          return false;
+        }
+        if (squareRow - pawnRow == 2 && pawnRow == 1) {
+          // enpassant possible
+          enPassant = true;
+          enPassantPiece = pawn;
+          enPassantTile = board.children[18+pawnCol];
+          enPassantTile.dataset.color = 'enPassant';
+          //enPassantTile.classList.add('red');
+        }
+        }
+        //console.log('squarerow = ' + squareRow + ' and pawnRow = ' +pawnRow);
+
+        if(!enPassant && enPassantTile){
+          enPassantTile.dataset.color = ' ';
         }
         return true;
         }
+
+        // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
+      function isValidPawnCapture(pawn, piece) {
+        const pawnRow = parseInt(pawn.parentNode.dataset.row);
+        const pawnCol = parseInt(pawn.parentNode.dataset.col);
+        const pieceRow = parseInt(piece.parentNode.dataset.row);
+        const pieceCol = parseInt(piece.parentNode.dataset.col);
+
+        if (pieceCol !== pawnCol-1 && pieceCol !== pawnCol+1) {
+          // The pawn can only take in the adjacent column
+          //console.log(pieceCol + '' + pawnCol);
+          return false;
+        }
+
+        if (pawn.pawn.color == 'black') {
+          if (pawnRow - pieceRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+        }
+        }
+
+        if (pawn.pawn.color == 'white') {
+          if (pieceRow - pawnRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+          }
+        }
+        if (enPassantTile){
+          enPassantTile.classList.remove('red');
+          enPassantTile.dataset.color = '';
+        }
+
+        return true;
+    }
+
+     // Check if En Passant is valid (i.e. one square vertically, up and in the same column)
+     function isValidEP(pawn, piece) {
+        const pawnRow = parseInt(pawn.parentNode.dataset.row);
+        const pawnCol = parseInt(pawn.parentNode.dataset.col);
+        const pieceRow = parseInt(piece.dataset.row);
+        const pieceCol = parseInt(piece.dataset.col);
+
+        if (pieceCol !== pawnCol-1 && pieceCol !== pawnCol+1) {
+          // The pawn can only take in the adjacent column
+          //console.log(pieceCol + '' + pawnCol);
+          return false;
+        }
+
+        if (pawn.pawn.color == 'black') {
+          if(pawnRow != 3){
+            return false;
+          }
+          if (pawnRow - pieceRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+        }
+        }
+
+        if (pawn.pawn.color == 'white') {
+          if(pawnRow != 4){
+            return false;
+          }
+          if (pieceRow - pawnRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+          }
+        }
+
+        //enPassantTile.classList.remove('red');
+        enPassantTile.dataset.color = '';
+        console.log('En Passant!');
+        return true;
+    }
+
     </script>
   </body>
 </html>
