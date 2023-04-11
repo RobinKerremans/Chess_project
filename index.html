@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<script src="./Pawn.js"></script>
+<script src="./Bishop.js"></script>
+<script src="./Knight.js"></script>
 <html>
   <head>
     <title>Chessboard with Pawns</title>
@@ -20,21 +23,55 @@
         background-color: gray;
       }
 
+      .red {
+        background-color: red;
+      }
+
+      .yellow{
+        background-color:rgb(251, 168, 66, 0.5);
+      }
+
+      .green{
+        background-color: rgb(37, 99, 37, 0.5);
+      }
+
+      .rotate-board {
+        transform: rotate(180deg);
+      }
+
+      #container {
+        margin: left= 50; /* Center the container left */
+        width: 400px;
+      }
+
       .pawn {
-        background-image: url('./pawn.png');
         background-size: 50px;
         background-repeat: no-repeat;
         background-position: center;
         cursor: pointer;
       }
+
+      .bishop {
+        background-size: 20px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+
+
     </style>
   </head>
   <body>
-    <div id="chessboard"></div>
+    <div id="container">
+      <div id="chessboard"></div>
+    </div>
     <script>
       const boardSize = 8;
       const board = document.getElementById('chessboard');
       const pawns = [];
+      const pieces = [];
+      let isWhiteTurn = true;
+
 
       // Create the chessboard
       for (let row = 0; row < boardSize; row++) {
@@ -59,31 +96,140 @@
         board.appendChild(newline);
       }
 
-      // Create the 8 pawn pieces
+      // Create the 8 black pawn pieces
       for (let i = 0; i < 8; i++) {
-        const pawn = document.createElement('div');
-        pawn.classList.add('square', 'pawn');
+        const pawn = new Pawn('black');
         const square = board.children[8 * (boardSize - 2) + i + 6]; // Place the pawn on the 2nd row, i-th column
-        square.appendChild(pawn);
-        pawns.push(pawn); // Add the pawn to the pawns array
+        square.appendChild(pawn.element);
+        pawns.push(pawn.element); // Add the pawn to the pawns array
       }
 
-      // Add event listeners to the pawns and squares
+      // Create the 8 white pawn pieces
+      for (let i = 0; i < 8; i++) {
+        const pawn = new Pawn('white');
+        const square = board.children[8 * (boardSize - 6) + i - 7]; // Place the pawn on the 2nd row, i-th column
+        square.appendChild(pawn.element);
+        pawns.push(pawn.element); // Add the pawn to the pawns array
+      }
+
+      // Create the Bishops
+      const bishop1 = new Bishop('white');
+      const bishop2 = new Bishop('white');
+      const bishop3 = new Bishop('black');
+      const bishop4 = new Bishop('black');
+      board.children[2].appendChild(bishop1.element);
+      board.children[5].appendChild(bishop2.element);
+      board.children[65].appendChild(bishop3.element);
+      board.children[68].appendChild(bishop4.element);
+      pieces.push(bishop1.element,bishop2.element,bishop3.element,bishop4.element);
+
+      // Create the Knights
+      const knight1 = new Knight('white');
+      const knight2 = new Knight('white');
+      const knight3 = new Knight('black');
+      const knight4 = new Knight('black');
+      board.children[1].appendChild(knight1.element);
+      board.children[6].appendChild(knight2.element);
+      board.children[64].appendChild(knight3.element);
+      board.children[69].appendChild(knight4.element);
+      pieces.push(knight1.element,knight2.element,knight3.element,knight4.element);
+
+      // Add event listeners to the pawns pieces and squares
       let selectedPiece = null;
+      let lastSelect = null;
+      let enPassantPiece = null;
+      let enPassantTile = null;
+      let lastMoveLeave = null;
+      let lastMoveLand = null;
+      let enPassant = false;
+      flipBoard();
 
       pawns.forEach((pawn) => {
         pawn.addEventListener('click', () => {
-          selectedPiece = pawn;
+          if(selectedPiece == null){
+            selectedPiece = pawn;
+            select(pawn);
+          }
+          // allows captures, taking turns only selects own pieces
+          else if(selectedPiece.piece.color == pawn.piece.color){
+            selectedPiece = pawn;
+            select(pawn);
+          }
+        });
+      });
+
+      pieces.forEach((piece) => {
+        piece.addEventListener('click', () => {
+          if(selectedPiece == null){
+            selectedPiece = piece;
+            select(piece);
+          }
+          // allows captures, taking turns only selects own pieces
+          else if(selectedPiece.piece.color == piece.piece.color){
+            selectedPiece = piece;
+            select(piece);
+          }
         });
       });
 
       board.addEventListener('click', (event) => {
         const square = event.target;
-        if (selectedPiece && square.classList.contains('square') && !square.children.length) {
+
+        if (selectedPiece) {
           // Check if the selected piece is a pawn and if the move is valid
           if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
+            yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
             selectedPiece = null;
+            enPassant = false;
+            isWhiteTurn = !isWhiteTurn;
+            //flipBoard();
+          }
+          else if (selectedPiece.piece.isValidMove(selectedPiece, square)) {
+            yellowPaint(selectedPiece,square);
+            square.appendChild(selectedPiece);
+            selectedPiece = null;
+            enPassant = false;
+            isWhiteTurn = !isWhiteTurn;
+            //flipBoard();
+          }
+        }
+
+        //== PAWN CAPTURE LOGIC ===//
+        if (selectedPiece && selectedPiece.classList.contains('pawn') && square.parentNode.children.length==1) {
+          // Check if the selected piece is a pawn and if the CAPTURE is valid
+          if (selectedPiece.classList.contains('pawn') && isValidPawnCapture(selectedPiece, square)) {
+            yellowPaint(selectedPiece,square.parentNode);
+            square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
+            selectedPiece = null;
+            enPassant = false;
+            isWhiteTurn = !isWhiteTurn;
+            //flipBoard();
+          }
+        }
+        if (selectedPiece && square.dataset.EP=='enPassant') {
+          //console.log(selectedPiece.classList.contains('pawn'));
+          if (selectedPiece.classList.contains('pawn') && isValidEP(selectedPiece, square)) {
+            yellowPaint(selectedPiece,square);
+            square.appendChild(selectedPiece);
+            enPassantPiece.remove();
+            selectedPiece = null;
+            isWhiteTurn = !isWhiteTurn;
+            //flipBoard();
+          }
+        }
+
+        // == OTHER PIECE CAPTURE LOGIC == //
+        if (selectedPiece && !selectedPiece.classList.contains('pawn') && square.parentNode.children.length==1) {
+          const targetPiece = square.parentNode.children[0];
+          // Check what the selectedPiece is and if the capture is valid
+          if (selectedPiece.piece.isValidCapture(selectedPiece, targetPiece)) {
+            yellowPaint(selectedPiece,square.parentNode);
+            square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
+            selectedPiece = null;
+            enPassant = false;
+            isWhiteTurn = !isWhiteTurn;
+            //flipBoard();
           }
         }
       });
@@ -99,12 +245,181 @@
           // The pawn can only move in the same column
           return false;
         }
-
-        if (squareRow !== pawnRow - 1) {
+        if (pawn.piece.color == 'black') {
+          if (pawnRow - squareRow < 0) {
+          // The pawn can only move up one
           return false;
+        }
+        if (pawnRow - squareRow > 1 && pawnRow < 6) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (pawnRow - squareRow > 2 && pawnRow == 6) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (pawnRow - squareRow == 2 && pawnRow == 6) {
+          // enpassant possible
+          enPassant = true;
+          enPassantPiece = pawn;
+          enPassantTile = board.children[45+pawnCol];
+          enPassantTile.dataset.EP = 'enPassant';
+        }
+        }
+        if (pawn.piece.color == 'white') {
+          if (pawnRow - squareRow > 0) {
+          // The pawn can only move up
+          return false;
+        }
+        if (squareRow - pawnRow > 1 && pawnRow > 1) {
+          // The pawn can only move up one
+          return false;
+        }
+        if (squareRow - pawnRow > 2 && pawnRow == 1) {
+          // The pawn can move up one or two
+          return false;
+        }
+        if (squareRow - pawnRow == 2 && pawnRow == 1) {
+          // enpassant possible
+          enPassant = true;
+          enPassantPiece = pawn;
+          enPassantTile = board.children[18+pawnCol];
+          enPassantTile.dataset.EP = 'enPassant';
+          //enPassantTile.classList.add('yellow');
+        }
+        }
+        //console.log('squarerow = ' + squareRow + ' and pawnRow = ' +pawnRow);
+
+        if(!enPassant && enPassantTile){
+          enPassantTile.dataset.EP = ' ';
         }
         return true;
         }
+
+        // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
+      function isValidPawnCapture(pawn, piece) {
+        const pawnRow = parseInt(pawn.parentNode.dataset.row);
+        const pawnCol = parseInt(pawn.parentNode.dataset.col);
+        const pieceRow = parseInt(piece.parentNode.dataset.row);
+        const pieceCol = parseInt(piece.parentNode.dataset.col);
+
+        if (pieceCol !== pawnCol-1 && pieceCol !== pawnCol+1) {
+          // The pawn can only take in the adjacent column
+          //console.log(pieceCol + '' + pawnCol);
+          return false;
+        }
+
+        if (pawn.piece.color == 'black') {
+          if (pawnRow - pieceRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+        }
+        }
+
+        if (pawn.piece.color == 'white') {
+          if (pieceRow - pawnRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+          }
+        }
+        if (enPassantTile){
+          enPassantTile.classList.remove('red');
+          enPassantTile.dataset.EP = '';
+        }
+
+        return true;
+    }
+
+    function flipBoard(){
+      if (isWhiteTurn) {
+              document.getElementById("chessboard").classList.add("rotate-board");
+              pawns.forEach((pawn) => {
+                pawn.classList.add("rotate-board");
+              });
+              pieces.forEach((piece) => {
+                piece.classList.add("rotate-board");
+              });
+            } else {
+             document.getElementById("chessboard").classList.remove("rotate-board");
+             pawns.forEach((pawn) => {
+                pawn.classList.remove("rotate-board");
+              });
+              pieces.forEach((piece) => {
+                piece.classList.remove("rotate-board");
+              });
+            }
+
+
+    }
+
+     // Check if En Passant is valid (i.e. one square vertically, up and in the same column)
+     function isValidEP(pawn, piece) {
+        const pawnRow = parseInt(pawn.parentNode.dataset.row);
+        const pawnCol = parseInt(pawn.parentNode.dataset.col);
+        const pieceRow = parseInt(piece.dataset.row);
+        const pieceCol = parseInt(piece.dataset.col);
+
+        if (pieceCol !== pawnCol-1 && pieceCol !== pawnCol+1) {
+          // The pawn can only take in the adjacent column
+          //console.log(pieceCol + '' + pawnCol);
+          return false;
+        }
+
+        if (pawn.piece.color == 'black') {
+          if(pawnRow != 3){
+            return false;
+          }
+          if (pawnRow - pieceRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+        }
+        }
+
+        if (pawn.piece.color == 'white') {
+          if(pawnRow != 4){
+            return false;
+          }
+          if (pieceRow - pawnRow != 1) {
+          // The pawn can only move up
+          console.log(3);
+          return false;
+          }
+        }
+
+        //enPassantTile.classList.remove('red');
+        enPassantTile.dataset.EP = '';
+        console.log('En Passant!');
+        return true;
+    }
+
+    function yellowPaint(piece,square){
+      if (lastMoveLeave){
+              lastMoveLeave.classList.remove('yellow');
+              lastMoveLand.classList.remove('yellow');
+            }
+            lastMoveLeave = piece.parentNode;
+            lastMoveLand= square;
+            lastMoveLand.classList.add('yellow');
+            lastMoveLeave.classList.remove('green');
+            lastMoveLeave.classList.add('yellow');
+    }
+
+    function select(piece){
+      if (lastSelect){
+              lastSelect.classList.remove('green');
+            }
+            lastSelect = piece.parentNode;
+            lastSelect.classList.add('green');
+    }
+
+    function unselect(){
+      if (lastSelect){
+              lastSelect.classList.remove('green');
+            }
+    }
     </script>
   </body>
 </html>
