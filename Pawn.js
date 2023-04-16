@@ -3,7 +3,7 @@ class Pawn {
     this.color = color;
     this.hasMoved = false;
     this.element = document.createElement('div');
-    this.element.classList.add('square', 'pawn');
+    this.element.classList.add('square', 'pawn', `${color}-enemy`);
     this.element.piece = this;
     this.element.style.backgroundImage = `url('./pawn-${color}.png')`;
   }

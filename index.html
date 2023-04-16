@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <script src="./Pawn.js"></script>
-<script src="./Bishop.js"></script>
 <script src="./Knight.js"></script>
+<script src="./QueenBishopRook.js"></script>
+<script src="./King.js"></script>
 <html>
   <head>
     <title>Chessboard with Pawns</title>
@@ -45,7 +46,7 @@
       }
 
       .pawn {
-        background-size: 50px;
+        background-size: 45px;
         background-repeat: no-repeat;
         background-position: center;
         cursor: pointer;
@@ -53,6 +54,34 @@
 
       .bishop {
         background-size: 20px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+
+      .knight {
+        background-size: 35px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+
+      .rook {
+        background-size: 50px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+
+      .queen {
+        background-size: 50px;
+        background-repeat: no-repeat;
+        background-position: center;
+        cursor: pointer;
+      }
+
+      .king {
+        background-size: 60px;
         background-repeat: no-repeat;
         background-position: center;
         cursor: pointer;
@@ -123,6 +152,20 @@
       board.children[68].appendChild(bishop4.element);
       pieces.push(bishop1.element,bishop2.element,bishop3.element,bishop4.element);
 
+      // Create the Queens
+      const queen1 = new Queen('white');
+      const queen2 = new Queen('black');
+      board.children[4].appendChild(queen1.element);
+      board.children[67].appendChild(queen2.element);
+      pieces.push(queen1.element,queen2.element);
+
+      // Create the Kings
+      const king1 = new King('white');
+      const king2 = new King('black');
+      board.children[3].appendChild(king1.element);
+      board.children[66].appendChild(king2.element);
+      pieces.push(king1.element,king2.element);
+
       // Create the Knights
       const knight1 = new Knight('white');
       const knight2 = new Knight('white');
@@ -133,6 +176,17 @@
       board.children[64].appendChild(knight3.element);
       board.children[69].appendChild(knight4.element);
       pieces.push(knight1.element,knight2.element,knight3.element,knight4.element);
+
+      // Create the Rooks
+      const rook1 = new Rook('white');
+      const rook2 = new Rook('white');
+      const rook3 = new Rook('black');
+      const rook4 = new Rook('black');
+      board.children[0].appendChild(rook1.element);
+      board.children[7].appendChild(rook2.element);
+      board.children[63].appendChild(rook3.element);
+      board.children[70].appendChild(rook4.element);
+      pieces.push(rook1.element,rook2.element,rook3.element,rook4.element);
 
       // Add event listeners to the pawns pieces and squares
       let selectedPiece = null;
@@ -150,6 +204,13 @@
             selectedPiece = pawn;
             select(pawn);
           }
+          // allows unselecting by clicking twice
+          else if(selectedPiece.piece.color == pawn.piece.color &&
+          selectedPiece.parentNode.dataset.row == pawn.parentNode.dataset.row &&
+          selectedPiece.parentNode.dataset.col == pawn.parentNode.dataset.col){
+            selectedPiece = null;
+            unselect();
+          }
           // allows captures, taking turns only selects own pieces
           else if(selectedPiece.piece.color == pawn.piece.color){
             selectedPiece = pawn;
@@ -164,27 +225,35 @@
             selectedPiece = piece;
             select(piece);
           }
+          // allows unselecting by clicking twice
+          else if(selectedPiece.piece.color == piece.piece.color &&
+          selectedPiece.parentNode.dataset.row == piece.parentNode.dataset.row &&
+          selectedPiece.parentNode.dataset.col == piece.parentNode.dataset.col){
+            selectedPiece = null;
+            unselect();
+          }
           // allows captures, taking turns only selects own pieces
           else if(selectedPiece.piece.color == piece.piece.color){
             selectedPiece = piece;
             select(piece);
           }
+
         });
       });
 
       board.addEventListener('click', (event) => {
         const square = event.target;
 
-        if (selectedPiece) {
+        if (selectedPiece && square != selectedPiece) {
           // Check if the selected piece is a pawn and if the move is valid
           if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
             yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
             selectedPiece = null;
-            enPassant = false;
             isWhiteTurn = !isWhiteTurn;
             //flipBoard();
           }
+
           else if (selectedPiece.piece.isValidMove(selectedPiece, square)) {
             yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
@@ -193,7 +262,7 @@
             isWhiteTurn = !isWhiteTurn;
             //flipBoard();
           }
-        }
+
 
         //== PAWN CAPTURE LOGIC ===//
         if (selectedPiece && selectedPiece.classList.contains('pawn') && square.parentNode.children.length==1) {
@@ -206,9 +275,9 @@
             isWhiteTurn = !isWhiteTurn;
             //flipBoard();
           }
+
         }
         if (selectedPiece && square.dataset.EP=='enPassant') {
-          //console.log(selectedPiece.classList.contains('pawn'));
           if (selectedPiece.classList.contains('pawn') && isValidEP(selectedPiece, square)) {
             yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
@@ -231,7 +300,17 @@
             isWhiteTurn = !isWhiteTurn;
             //flipBoard();
           }
+          else {
+            selectedPiece=null;
+            unselect();
+          }
         }
+
+        else {
+            selectedPiece=null;
+            unselect();
+          }
+      }
       });
 
       // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
@@ -258,13 +337,7 @@
           // The pawn can only move up one
           return false;
         }
-        if (pawnRow - squareRow == 2 && pawnRow == 6) {
-          // enpassant possible
-          enPassant = true;
-          enPassantPiece = pawn;
-          enPassantTile = board.children[45+pawnCol];
-          enPassantTile.dataset.EP = 'enPassant';
-        }
+
         }
         if (pawn.piece.color == 'white') {
           if (pawnRow - squareRow > 0) {
@@ -279,20 +352,34 @@
           // The pawn can move up one or two
           return false;
         }
+      }
+
+      // toggle enpassant, first set to false for if a real pawn move will be made
+      enPassant = false;
+
+      if (pawn.piece.color == 'white') {
         if (squareRow - pawnRow == 2 && pawnRow == 1) {
           // enpassant possible
           enPassant = true;
           enPassantPiece = pawn;
           enPassantTile = board.children[18+pawnCol];
           enPassantTile.dataset.EP = 'enPassant';
-          //enPassantTile.classList.add('yellow');
         }
+      }
+      if (pawn.piece.color == 'black') {
+        if (pawnRow - squareRow == 2 && pawnRow == 6) {
+          // enpassant possible
+          enPassant = true;
+          enPassantPiece = pawn;
+          enPassantTile = board.children[45+pawnCol];
+          enPassantTile.dataset.EP = 'enPassant';
         }
-        //console.log('squarerow = ' + squareRow + ' and pawnRow = ' +pawnRow);
+      }
 
         if(!enPassant && enPassantTile){
           enPassantTile.dataset.EP = ' ';
         }
+
         return true;
         }
 
@@ -312,7 +399,6 @@
         if (pawn.piece.color == 'black') {
           if (pawnRow - pieceRow != 1) {
           // The pawn can only move up
-          console.log(3);
           return false;
         }
         }
@@ -320,7 +406,6 @@
         if (pawn.piece.color == 'white') {
           if (pieceRow - pawnRow != 1) {
           // The pawn can only move up
-          console.log(3);
           return false;
           }
         }
@@ -355,44 +440,18 @@
     }
 
      // Check if En Passant is valid (i.e. one square vertically, up and in the same column)
-     function isValidEP(pawn, piece) {
-        const pawnRow = parseInt(pawn.parentNode.dataset.row);
-        const pawnCol = parseInt(pawn.parentNode.dataset.col);
-        const pieceRow = parseInt(piece.dataset.row);
-        const pieceCol = parseInt(piece.dataset.col);
-
-        if (pieceCol !== pawnCol-1 && pieceCol !== pawnCol+1) {
-          // The pawn can only take in the adjacent column
-          //console.log(pieceCol + '' + pawnCol);
+     function isValidEP(pawn, square) {
+        if(square.dataset.EP=='enPassant'){
+          //enPassantTile.classList.remove('red');
+          enPassantTile.dataset.EP = '';
+          enPassant = false;
+          console.log('En Passant!');
+          return true;
+        } else{
           return false;
         }
 
-        if (pawn.piece.color == 'black') {
-          if(pawnRow != 3){
-            return false;
-          }
-          if (pawnRow - pieceRow != 1) {
-          // The pawn can only move up
-          console.log(3);
-          return false;
-        }
-        }
 
-        if (pawn.piece.color == 'white') {
-          if(pawnRow != 4){
-            return false;
-          }
-          if (pieceRow - pawnRow != 1) {
-          // The pawn can only move up
-          console.log(3);
-          return false;
-          }
-        }
-
-        //enPassantTile.classList.remove('red');
-        enPassantTile.dataset.EP = '';
-        console.log('En Passant!');
-        return true;
     }
 
     function yellowPaint(piece,square){
