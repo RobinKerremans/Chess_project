@@ -46,6 +46,7 @@ class Rook {
       }
 
       // Movement is allowed
+      this.hasMoved = true;
       return true;
     }
 
@@ -93,9 +94,72 @@ class Rook {
     }
 
     // Movement is allowed
+    this.hasMoved = true;
     return true;
   }
+
+  getAttackSquares() {
+    const currentCol = parseInt(this.element.parentNode.dataset.col);
+    const currentRow = parseInt(this.element.parentNode.dataset.row);
+    const attackSquares = [];
+
+    // check vertically up
+    for (let i = 1; i <= 7; i++) {
+      const col = currentCol + i;
+      if (col > 7) break;
+      const square = document.querySelector(`[data-row="${currentRow}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+          // A piece is blocking the diagonal path
+          if (square.children[0].piece.color == this.color) attackSquares.push(square);
+          //squares beyond king stay attacked
+          if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+
+    // check vertically down
+    for (let i = 1; i <= 7; i++) {
+      const col = currentCol - i;
+      if (col < 0) break;
+      const square = document.querySelector(`[data-row="${currentRow}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check horizontally right (left?)
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow + i;
+      if (row > 7) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${currentCol}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check horizontally left
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow - i;
+      if (row < 0) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${currentCol}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    return attackSquares;
+  }
+
 }
+
+
 
 // ======================================================================================================
 class Bishop {
@@ -103,7 +167,7 @@ class Bishop {
     this.color = color;
     this.hasMoved = false;
     this.element = document.createElement('div');
-    this.element.classList.add('square', 'bishop', `${color}-bishop`);
+    this.element.classList.add('square', 'bishop', `${color}-enemy`);
     this.element.piece = this;
     this.element.style.backgroundImage = `url('./bishop-${color}.png')`;
   }
@@ -194,7 +258,7 @@ class Bishop {
       const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
       if (square && square.children.length > 0) {
           // A piece is blocking the diagonal path
-          if (square.children[0].piece.color !== this.color) attackSquares.push(square);
+          if (square.children[0].piece.color == this.color) attackSquares.push(square);
           if (!square.children[0].classList.contains('king')) break;
       }
       attackSquares.push(square);
@@ -208,7 +272,7 @@ class Bishop {
       if (row < 0 || col < 0) break;
       const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
       if (square && square.children.length > 0) {
-        if (square.children[0].piece.color !== this.color) attackSquares.push(square);
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
         if (!square.children[0].classList.contains('king')) break;
       }
       attackSquares.push(square);
@@ -221,7 +285,7 @@ class Bishop {
       if (row > 7 || col > 7) break;
       const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
       if (square && square.children.length > 0) {
-        if (square.children[0].piece.color !== this.color) attackSquares.push(square);
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
         if (!square.children[0].classList.contains('king')) break;
       }
       attackSquares.push(square);
@@ -234,7 +298,7 @@ class Bishop {
       if (row > 7 || col < 0) break;
       const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
       if (square && square.children.length > 0) {
-        if (square.children[0].piece.color !== this.color) attackSquares.push(square);
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
         if (!square.children[0].classList.contains('king')) break;
       }
       attackSquares.push(square);
@@ -266,6 +330,119 @@ class Queen {
     const rook = new Rook(this.color);
     const bishop = new Bishop(this.color);
       return (rook.isValidCapture(selectedPiece, targetPiece) || bishop.isValidCapture(selectedPiece, targetPiece));
+  }
+
+  getAttackSquares() {
+    const currentCol = parseInt(this.element.parentNode.dataset.col);
+    const currentRow = parseInt(this.element.parentNode.dataset.row);
+    const attackSquares = [];
+
+    // check diagonally up-right
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow - i;
+      const col = currentCol + i;
+      if (row < 0 || col > 7) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+          // A piece is blocking the diagonal path
+          if (square.children[0].piece.color == this.color) attackSquares.push(square);
+          if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+
+    // check diagonally up-left
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow - i;
+      const col = currentCol - i;
+      if (row < 0 || col < 0) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check diagonally down-right
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow + i;
+      const col = currentCol + i;
+      if (row > 7 || col > 7) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check diagonally down-left
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow + i;
+      const col = currentCol - i;
+      if (row > 7 || col < 0) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check vertically up
+    for (let i = 1; i <= 7; i++) {
+      const col = currentCol + i;
+      if (col > 7) break;
+      const square = document.querySelector(`[data-row="${currentRow}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+          // A piece is blocking the diagonal path
+          if (square.children[0].piece.color == this.color) attackSquares.push(square);
+          //squares beyond king stay attacked
+          if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+
+    // check vertically down
+    for (let i = 1; i <= 7; i++) {
+      const col = currentCol - i;
+      if (col < 0) break;
+      const square = document.querySelector(`[data-row="${currentRow}"][data-col="${col}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check horizontally right (left?)
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow + i;
+      if (row > 7) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${currentCol}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    // check horizontally left
+    for (let i = 1; i <= 7; i++) {
+      const row = currentRow - i;
+      if (row < 0) break;
+      const square = document.querySelector(`[data-row="${row}"][data-col="${currentCol}"]`);
+      if (square && square.children.length > 0) {
+        if (square.children[0].piece.color == this.color) attackSquares.push(square);
+        if (!square.children[0].classList.contains('king')) break;
+      }
+      attackSquares.push(square);
+    }
+
+    return attackSquares;
   }
 
 

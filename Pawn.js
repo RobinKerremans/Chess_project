@@ -40,4 +40,45 @@ class Pawn {
 
     return true;
   }
+
+  getAttackSquares() {
+
+    const row = parseInt(this.element.parentNode.dataset.row);
+    const col = parseInt(this.element.parentNode.dataset.col);
+    const attackSquares = [];
+
+    if(this.color == 'white'){
+      const possibleMoves = [
+        [1, 1], [1, -1]
+      ];
+      possibleMoves.forEach(move => {
+        const newRow = row + move[0];
+        const newCol = col + move[1];
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+          const targetSquare = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+          if (targetSquare) {
+            attackSquares.push(targetSquare);
+          }
+        }
+      });
+    } else{
+      const possibleMoves = [
+        [-1, 1], [-1, -1]
+      ];
+      possibleMoves.forEach(move => {
+        const newRow = row + move[0];
+        const newCol = col + move[1];
+        if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+          const targetSquare = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+          if (targetSquare) {
+            attackSquares.push(targetSquare);
+          }
+        }
+      });
+    }
+
+
+    return attackSquares;
+  }
+
 }

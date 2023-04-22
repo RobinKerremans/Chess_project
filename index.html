@@ -179,9 +179,13 @@
 
       // Create the Rooks
       const rook1 = new Rook('white');
+      rook1.element.classList.add('right');
       const rook2 = new Rook('white');
+      rook2.element.classList.add('left');
       const rook3 = new Rook('black');
+      rook3.element.classList.add('right');
       const rook4 = new Rook('black');
+      rook4.element.classList.add('left');
       board.children[0].appendChild(rook1.element);
       board.children[7].appendChild(rook2.element);
       board.children[63].appendChild(rook3.element);
@@ -251,7 +255,7 @@
             square.appendChild(selectedPiece);
             selectedPiece = null;
             isWhiteTurn = !isWhiteTurn;
-            //flipBoard();
+            flipBoard();
           }
 
           else if (selectedPiece.piece.isValidMove(selectedPiece, square)) {
@@ -260,7 +264,44 @@
             selectedPiece = null;
             enPassant = false;
             isWhiteTurn = !isWhiteTurn;
-            //flipBoard();
+            flipBoard();
+          }
+
+          else if (selectedPiece.classList.contains('king') && !selectedPiece.piece.hasMoved){
+            if(selectedPiece.piece.isValidCastle(square)){
+              yellowPaint(selectedPiece,square);
+              square.appendChild(selectedPiece);
+              //find the appropriate square next and append the appropriate rook
+              let selectedRook;
+              if(selectedPiece.piece.color == 'white'){
+                if(square.dataset.col == 1){
+                  selectedRook = document.querySelectorAll('.rook.white-enemy.right')[0];
+                  const rookSquare = document.querySelector(`[data-row="${0}"][data-col="${2}"]`);
+                  rookSquare.appendChild(selectedRook);
+                }
+                if(square.dataset.col == 5){
+                  selectedRook = document.querySelectorAll('.rook.white-enemy.left')[0];
+                  const rookSquare = document.querySelector(`[data-row="${0}"][data-col="${4}"]`);
+                  rookSquare.appendChild(selectedRook);
+                }
+              }
+              if(selectedPiece.piece.color == 'black'){
+                if(square.dataset.col == 1){
+                  selectedRook = document.querySelectorAll('.rook.black-enemy.right')[0];
+                  const rookSquare = document.querySelector(`[data-row="${7}"][data-col="${2}"]`);
+                  rookSquare.appendChild(selectedRook);
+                }
+                if(square.dataset.col == 5){
+                  selectedRook = document.querySelectorAll('.rook.black-enemy.left')[0];
+                  const rookSquare = document.querySelector(`[data-row="${7}"][data-col="${4}"]`);
+                  rookSquare.appendChild(selectedRook);
+                }
+              }
+              selectedPiece = null;
+              enPassant = false;
+              isWhiteTurn = !isWhiteTurn;
+              flipBoard();
+            }
           }
 
 
@@ -273,7 +314,7 @@
             selectedPiece = null;
             enPassant = false;
             isWhiteTurn = !isWhiteTurn;
-            //flipBoard();
+            flipBoard();
           }
 
         }
@@ -284,7 +325,7 @@
             enPassantPiece.remove();
             selectedPiece = null;
             isWhiteTurn = !isWhiteTurn;
-            //flipBoard();
+            flipBoard();
           }
         }
 
@@ -298,7 +339,7 @@
             selectedPiece = null;
             enPassant = false;
             isWhiteTurn = !isWhiteTurn;
-            //flipBoard();
+            flipBoard();
           }
           else {
             selectedPiece=null;

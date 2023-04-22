@@ -3,7 +3,7 @@ class Knight {
     this.color = color;
     this.hasMoved = false;
     this.element = document.createElement('div');
-    this.element.classList.add('square', 'knight', `${color}-knight`);
+    this.element.classList.add('square', 'knight', `${color}-enemy`);
     this.element.piece = this;
     this.element.style.backgroundImage = `url('./knight-${color}.png')`;
   }
