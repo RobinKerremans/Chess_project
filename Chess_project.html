@@ -482,7 +482,9 @@
 
      // Check if En Passant is valid (i.e. one square vertically, up and in the same column)
      function isValidEP(pawn, square) {
-        if(square.dataset.EP=='enPassant'){
+        const pawnCapMove = Math.abs(pawn.parentNode.dataset.row-square.dataset.row) == 1
+        && Math.abs(pawn.parentNode.dataset.col-square.dataset.col) == 1;
+        if(square.dataset.EP=='enPassant' && pawnCapMove){
           //enPassantTile.classList.remove('red');
           enPassantTile.dataset.EP = '';
           enPassant = false;
