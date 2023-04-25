@@ -92,6 +92,30 @@ class King {
 
   }
 
+  isInCheck(){
+    const square = this.element.parentNode;
+    let enemyPieces;
+    if(this.color == 'white'){
+      enemyPieces = document.querySelectorAll('.black-enemy');
+    }
+    if(this.color == 'black'){
+      enemyPieces = document.querySelectorAll('.white-enemy');
+    }
+    const threatenedSquares = new Set();
+    for (const enemy of enemyPieces) {
+      const enemyPiece = enemy.piece;
+      const attackSquares = enemyPiece.getAttackSquares();
+
+      for (const square of attackSquares) {
+        threatenedSquares.add(square);
+      }
+    }
+    if (threatenedSquares.has(square)) {
+      return true;
+    }
+    return false;
+  }
+
   isValidCastle(square) {
     const col = parseInt(this.element.parentNode.dataset.col);
     const targetCol = parseInt(square.dataset.col);

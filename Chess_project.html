@@ -86,21 +86,98 @@
         background-position: center;
         cursor: pointer;
       }
+      /* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
 
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.promotion-pieces {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+}
+
+.promotion-piece {
+  width: 50px;
+  height: 50px;
+  border: 1px solid black;
+  margin: 5px;
+}
+
+.pqueen {
+  background-image: url('./queen-white.png');
+  background-size: cover;
+}
+
+.prook {
+  background-image: url('./rook-white.png');
+  background-size: cover;
+}
+
+.pbishop {
+  background-image: url('./bishop-white.png');
+  background-size: cover;
+}
+
+.pknight {
+  background-image: url('./knight-white.png');
+  background-size: cover;
+}
 
     </style>
   </head>
   <body>
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <p>Select a piece to promote your pawn to:</p>
+        <div class="promotion-pieces">
+          <div class="promotion-piece pqueen"></div>
+          <div class="promotion-piece prook"></div>
+          <div class="promotion-piece pbishop"></div>
+          <div class="promotion-piece pknight"></div>
+        </div>
+      </div>
+    </div>
     <div id="container">
       <div id="chessboard"></div>
     </div>
     <script>
       const boardSize = 8;
       const board = document.getElementById('chessboard');
-      const pawns = [];
       const pieces = [];
-      let isWhiteTurn = true;
-
 
       // Create the chessboard
       for (let row = 0; row < boardSize; row++) {
@@ -130,7 +207,7 @@
         const pawn = new Pawn('black');
         const square = board.children[8 * (boardSize - 2) + i + 6]; // Place the pawn on the 2nd row, i-th column
         square.appendChild(pawn.element);
-        pawns.push(pawn.element); // Add the pawn to the pawns array
+        pieces.push(pawn.element); // Add the pawn to the pawns array
       }
 
       // Create the 8 white pawn pieces
@@ -138,7 +215,7 @@
         const pawn = new Pawn('white');
         const square = board.children[8 * (boardSize - 6) + i - 7]; // Place the pawn on the 2nd row, i-th column
         square.appendChild(pawn.element);
-        pawns.push(pawn.element); // Add the pawn to the pawns array
+        pieces.push(pawn.element); // Add the pawn to the pawns array
       }
 
       // Create the Bishops
@@ -193,7 +270,11 @@
       pieces.push(rook1.element,rook2.element,rook3.element,rook4.element);
 
       // Add event listeners to the pawns pieces and squares
+      let kingInCheck = false;
+      let upcomingKing;
+      let isWhiteTurn = true;
       let selectedPiece = null;
+      let OGSquare;
       let lastSelect = null;
       let enPassantPiece = null;
       let enPassantTile = null;
@@ -201,27 +282,6 @@
       let lastMoveLand = null;
       let enPassant = false;
       flipBoard();
-
-      pawns.forEach((pawn) => {
-        pawn.addEventListener('click', () => {
-          if(selectedPiece == null){
-            selectedPiece = pawn;
-            select(pawn);
-          }
-          // allows unselecting by clicking twice
-          else if(selectedPiece.piece.color == pawn.piece.color &&
-          selectedPiece.parentNode.dataset.row == pawn.parentNode.dataset.row &&
-          selectedPiece.parentNode.dataset.col == pawn.parentNode.dataset.col){
-            selectedPiece = null;
-            unselect();
-          }
-          // allows captures, taking turns only selects own pieces
-          else if(selectedPiece.piece.color == pawn.piece.color){
-            selectedPiece = pawn;
-            select(pawn);
-          }
-        });
-      });
 
       pieces.forEach((piece) => {
         piece.addEventListener('click', () => {
@@ -245,26 +305,40 @@
         });
       });
 
+
+      // PAWN AND PIECE MOVES ==============================================================
+
       board.addEventListener('click', (event) => {
         const square = event.target;
 
         if (selectedPiece && square != selectedPiece) {
           // Check if the selected piece is a pawn and if the move is valid
           if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
-            yellowPaint(selectedPiece,square);
-            square.appendChild(selectedPiece);
-            selectedPiece = null;
-            isWhiteTurn = !isWhiteTurn;
-            flipBoard();
+            let color = selectedPiece.piece.color;
+            let OGSquare = selectedPiece.parentNode;
+            if(color == 'white' && square.dataset.row == 7){
+              promote(selectedPiece,square);
+            }
+            else if(color == 'black' && square.dataset.row == 0){
+              promote(selectedPiece,square);
+            }
+            else{
+              square.appendChild(selectedPiece);
+              let currentKing = document.querySelector(`.${color}-enemy.king`);
+              if(currentKing.piece.isInCheck()){
+                console.log('Pinned!');
+                OGSquare.appendChild(selectedPiece);
+              } else{
+                  yellowPaint(OGSquare,square);
+                  updateTurn();
+              }
+            }
           }
 
           else if (selectedPiece.piece.isValidMove(selectedPiece, square)) {
             yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
-            selectedPiece = null;
-            enPassant = false;
-            isWhiteTurn = !isWhiteTurn;
-            flipBoard();
+            updateTurn();
           }
 
           else if (selectedPiece.classList.contains('king') && !selectedPiece.piece.hasMoved){
@@ -297,24 +371,28 @@
                   rookSquare.appendChild(selectedRook);
                 }
               }
-              selectedPiece = null;
-              enPassant = false;
-              isWhiteTurn = !isWhiteTurn;
-              flipBoard();
+              updateTurn();
             }
           }
 
 
-        //== PAWN CAPTURE LOGIC ===//
+        //== CAPTURE LOGIC ===//=========================================================
+
         if (selectedPiece && selectedPiece.classList.contains('pawn') && square.parentNode.children.length==1) {
           // Check if the selected piece is a pawn and if the CAPTURE is valid
           if (selectedPiece.classList.contains('pawn') && isValidPawnCapture(selectedPiece, square)) {
-            yellowPaint(selectedPiece,square.parentNode);
-            square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
-            selectedPiece = null;
-            enPassant = false;
-            isWhiteTurn = !isWhiteTurn;
-            flipBoard();
+            if(selectedPiece.piece.color == 'white' && square.parentNode.dataset.row == 7){
+              promote(selectedPiece, square);
+            }
+            else if(selectedPiece.piece.color == 'black' && square.parentNode.dataset.row == 0){
+              promote(selectedPiece, square);
+            }
+            else{
+              yellowPaint(selectedPiece,square.parentNode);
+              square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
+              updateTurn();
+            }
+
           }
 
         }
@@ -323,23 +401,17 @@
             yellowPaint(selectedPiece,square);
             square.appendChild(selectedPiece);
             enPassantPiece.remove();
-            selectedPiece = null;
-            isWhiteTurn = !isWhiteTurn;
-            flipBoard();
+            updateTurn();
           }
         }
 
-        // == OTHER PIECE CAPTURE LOGIC == //
         if (selectedPiece && !selectedPiece.classList.contains('pawn') && square.parentNode.children.length==1) {
           const targetPiece = square.parentNode.children[0];
           // Check what the selectedPiece is and if the capture is valid
           if (selectedPiece.piece.isValidCapture(selectedPiece, targetPiece)) {
             yellowPaint(selectedPiece,square.parentNode);
             square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
-            selectedPiece = null;
-            enPassant = false;
-            isWhiteTurn = !isWhiteTurn;
-            flipBoard();
+            updateTurn();
           }
           else {
             selectedPiece=null;
@@ -353,6 +425,9 @@
           }
       }
       });
+
+
+      // FUNCTIONS ==============================================================================
 
       // Check if a pawn move is valid (i.e. one square vertically, up and in the same column)
       function isValidPawnMove(pawn, square) {
@@ -461,17 +536,11 @@
     function flipBoard(){
       if (isWhiteTurn) {
               document.getElementById("chessboard").classList.add("rotate-board");
-              pawns.forEach((pawn) => {
-                pawn.classList.add("rotate-board");
-              });
               pieces.forEach((piece) => {
                 piece.classList.add("rotate-board");
               });
             } else {
              document.getElementById("chessboard").classList.remove("rotate-board");
-             pawns.forEach((pawn) => {
-                pawn.classList.remove("rotate-board");
-              });
               pieces.forEach((piece) => {
                 piece.classList.remove("rotate-board");
               });
@@ -522,6 +591,125 @@
               lastSelect.classList.remove('green');
             }
     }
+
+
+    // Get the modal
+const modal = document.getElementById("myModal");
+
+// Get the <span> element that closes the modal
+const closeBtn = document.getElementsByClassName("close")[0];
+
+// Get the promotion pieces
+const pqueen = document.querySelector(".pqueen");
+const prook = document.querySelector(".prook");
+const pbishop = document.querySelector(".pbishop");
+const pknight = document.querySelector(".pknight");
+
+// When the pawn reaches the final rank, show the modal
+// and wait for the user to select a promotion piece
+function promotion(pawn) {
+
+  let color = pawn.piece.color;
+  pqueen.style.backgroundImage = `url('./queen-${color}.png')`;
+  prook.style.backgroundImage = `url('./rook-${color}.png')`;
+  pknight.style.backgroundImage = `url('./knight-${color}.png')`;
+  pbishop.style.backgroundImage = `url('./bishop-${color}.png')`;
+
+  return new Promise((resolve, reject) => {
+
+    modal.style.display = "block";
+    // add the promotion options to the popup
+    pqueen.addEventListener('click', () => {
+      resolve(new Queen(color));
+      modal.style.display = "none";
+    });
+
+  pbishop.addEventListener('click', () => {
+      resolve(new Bishop(color));
+      modal.style.display = "none";
+    });
+
+  prook.addEventListener('click', () => {
+      resolve(new Rook(color));
+      modal.style.display = "none";
+    });
+
+  pknight.addEventListener('click', () => {
+      resolve(new Knight(color));
+      modal.style.display = "none";
+    });
+
+  // add the close button to the popup
+  closeBtn.addEventListener('click', () => {
+      // if the user clicks close, reject the Promise
+      reject('Promotion cancelled');
+      modal.style.display = "none";
+    });
+  });
+
+}
+
+async function promote(pawn,square){
+  try {
+    let newPiece = await promotion(pawn);
+    pieces.push(newPiece.element);
+    if(square.parentNode.children.length == 1){
+      yellowPaint(pawn,square.parentNode);
+      square.parentNode.replaceChild(newPiece.element,square.parentNode.children[0]);
+    } else{
+      square.appendChild(newPiece.element);
+      yellowPaint(pawn,square);
+    }
+    pawn.remove();
+
+    if(!isWhiteTurn){
+      newPiece.element.classList.add("rotate-board");
+    }
+
+    newPiece.element.addEventListener('click', () => {
+          if(selectedPiece == null){
+            selectedPiece = newPiece.element;
+            select(newPiece.element);
+          }
+          // allows unselecting by clicking twice
+          else if(selectedPiece.piece.color == newPiece.element.piece.color &&
+          selectedPiece.parentNode.dataset.row == newPiece.element.parentNode.dataset.row &&
+          selectedPiece.parentNode.dataset.col == newPiece.element.parentNode.dataset.col){
+            selectedPiece = null;
+            unselect();
+          }
+          // allows captures, taking turns only selects own pieces
+          else if(selectedPiece.piece.color == newPiece.element.piece.color){
+            selectedPiece = newPiece.element;
+            select(newPiece.element);
+          }
+
+        });
+    updateTurn();
+
+    } catch (error) {
+      // if the user clicks 'close', cancel the move
+      newPiece = null;
+      return;
+}
+}
+
+function updateTurn(){
+  selectedPiece = null;
+  enPassant = false;
+  isWhiteTurn = !isWhiteTurn;
+  //flipBoard();
+
+  //update kingInCheck
+  if (!isWhiteTurn){
+    upcomingKing = document.querySelector('.king.black-enemy');
+  } else {upcomingKing = document.querySelector('.king.white-enemy');}
+  if (upcomingKing.piece.isInCheck()){
+    kingInCheck = true;
+    console.log('Check!');
+  }
+}
+
     </script>
   </body>
 </html>
