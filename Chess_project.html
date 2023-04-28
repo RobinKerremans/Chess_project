@@ -25,7 +25,7 @@
       }
 
       .red {
-        background-color: red;
+        background-color: rgb(243, 77, 77, 0.5);
       }
 
       .yellow{
@@ -272,7 +272,7 @@
       // Add event listeners to the pawns pieces and squares
       let kingInCheck = false;
       let upcomingKing;
-      let isWhiteTurn = true;
+      let currentColor = 'white';
       let selectedPiece = null;
       let OGSquare;
       let lastSelect = null;
@@ -283,10 +283,13 @@
       let enPassant = false;
       flipBoard();
 
+      //give pieces click events, remember that this has to be done in promote as well!
       pieces.forEach((piece) => {
         piece.addEventListener('click', () => {
+        if(currentColor == piece.piece.color){
           if(selectedPiece == null){
             selectedPiece = piece;
+            OGSquare = selectedPiece.parentNode;
             select(piece);
           }
           // allows unselecting by clicking twice
@@ -299,9 +302,10 @@
           // allows captures, taking turns only selects own pieces
           else if(selectedPiece.piece.color == piece.piece.color){
             selectedPiece = piece;
+            OGSquare = selectedPiece.parentNode;
             select(piece);
           }
-
+        }
         });
       });
 
@@ -314,37 +318,23 @@
         if (selectedPiece && square != selectedPiece) {
           // Check if the selected piece is a pawn and if the move is valid
           if (selectedPiece.classList.contains('pawn') && isValidPawnMove(selectedPiece, square)) {
-            let color = selectedPiece.piece.color;
-            let OGSquare = selectedPiece.parentNode;
-            if(color == 'white' && square.dataset.row == 7){
+            if(currentColor == 'white' && square.dataset.row == 7){
               promote(selectedPiece,square);
             }
-            else if(color == 'black' && square.dataset.row == 0){
+            else if(currentColor == 'black' && square.dataset.row == 0){
               promote(selectedPiece,square);
             }
             else{
-              square.appendChild(selectedPiece);
-              let currentKing = document.querySelector(`.${color}-enemy.king`);
-              if(currentKing.piece.isInCheck()){
-                console.log('Pinned!');
-                OGSquare.appendChild(selectedPiece);
-              } else{
-                  yellowPaint(OGSquare,square);
-                  updateTurn();
-              }
+              updateTurn(selectedPiece,square);
             }
           }
 
           else if (selectedPiece.piece.isValidMove(selectedPiece, square)) {
-            yellowPaint(selectedPiece,square);
-            square.appendChild(selectedPiece);
-            updateTurn();
+            updateTurn(selectedPiece,square);
           }
 
           else if (selectedPiece.classList.contains('king') && !selectedPiece.piece.hasMoved){
             if(selectedPiece.piece.isValidCastle(square)){
-              yellowPaint(selectedPiece,square);
-              square.appendChild(selectedPiece);
               //find the appropriate square next and append the appropriate rook
               let selectedRook;
               if(selectedPiece.piece.color == 'white'){
@@ -371,7 +361,7 @@
                   rookSquare.appendChild(selectedRook);
                 }
               }
-              updateTurn();
+              updateTurn(selectedPiece,square);
             }
           }
 
@@ -388,9 +378,7 @@
               promote(selectedPiece, square);
             }
             else{
-              yellowPaint(selectedPiece,square.parentNode);
-              square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
-              updateTurn();
+              updateTurnCAP(selectedPiece,square.parentNode);
             }
 
           }
@@ -398,10 +386,7 @@
         }
         if (selectedPiece && square.dataset.EP=='enPassant') {
           if (selectedPiece.classList.contains('pawn') && isValidEP(selectedPiece, square)) {
-            yellowPaint(selectedPiece,square);
-            square.appendChild(selectedPiece);
-            enPassantPiece.remove();
-            updateTurn();
+            updateTurnEP(selectedPiece, square);
           }
         }
 
@@ -409,9 +394,7 @@
           const targetPiece = square.parentNode.children[0];
           // Check what the selectedPiece is and if the capture is valid
           if (selectedPiece.piece.isValidCapture(selectedPiece, targetPiece)) {
-            yellowPaint(selectedPiece,square.parentNode);
-            square.parentNode.replaceChild(selectedPiece,square.parentNode.children[0]);
-            updateTurn();
+            updateTurnCAP(selectedPiece,square.parentNode);
           }
           else {
             selectedPiece=null;
@@ -534,7 +517,7 @@
     }
 
     function flipBoard(){
-      if (isWhiteTurn) {
+      if (currentColor=='white') {
               document.getElementById("chessboard").classList.add("rotate-board");
               pieces.forEach((piece) => {
                 piece.classList.add("rotate-board");
@@ -566,17 +549,32 @@
 
     }
 
-    function yellowPaint(piece,square){
+    function yellowPaint(OGSquare,square){
       if (lastMoveLeave){
               lastMoveLeave.classList.remove('yellow');
               lastMoveLand.classList.remove('yellow');
             }
-            lastMoveLeave = piece.parentNode;
+            lastMoveLeave = OGSquare;
             lastMoveLand= square;
             lastMoveLand.classList.add('yellow');
             lastMoveLeave.classList.remove('green');
             lastMoveLeave.classList.add('yellow');
     }
+
+    function flashSquare(square) {
+      const originalColor = square.style.backgroundColor;
+      square.style.backgroundColor = "red";
+      setTimeout(() => {
+        square.style.backgroundColor = originalColor;
+        setTimeout(() => {
+          square.style.backgroundColor = "red";
+          setTimeout(() => {
+            square.style.backgroundColor = originalColor;
+          }, 100);
+        }, 0);
+      }, 200);
+    }
+
 
     function select(piece){
       if (lastSelect){
@@ -617,6 +615,17 @@ function promotion(pawn) {
 
   return new Promise((resolve, reject) => {
 
+    let OGPawn = pawn;
+    pawn.remove();
+    let currentKing = document.querySelector(`.${currentColor}-enemy.king`);
+    if(currentKing.piece.isInCheck()){
+      console.log('In Check!');
+      flashSquare(currentKing.parentNode);
+      OGSquare.appendChild(OGPawn);
+      reject('Promotion cancelled due to check');
+    } else{
+      currentKing.parentNode.classList.remove('red');
+    OGSquare.appendChild(OGPawn);
     modal.style.display = "block";
     // add the promotion options to the popup
     pqueen.addEventListener('click', () => {
@@ -645,6 +654,8 @@ function promotion(pawn) {
       reject('Promotion cancelled');
       modal.style.display = "none";
     });
+  }
+
   });
 
 }
@@ -654,21 +665,19 @@ async function promote(pawn,square){
     let newPiece = await promotion(pawn);
     pieces.push(newPiece.element);
     if(square.parentNode.children.length == 1){
-      yellowPaint(pawn,square.parentNode);
+      yellowPaint(OGSquare,square.parentNode);
       square.parentNode.replaceChild(newPiece.element,square.parentNode.children[0]);
     } else{
       square.appendChild(newPiece.element);
-      yellowPaint(pawn,square);
+      yellowPaint(OGSquare,square);
     }
     pawn.remove();
-
-    if(!isWhiteTurn){
-      newPiece.element.classList.add("rotate-board");
-    }
+    newPiece.element.classList.add("rotate-board");
 
     newPiece.element.addEventListener('click', () => {
           if(selectedPiece == null){
             selectedPiece = newPiece.element;
+            OGSquare = selectedPiece.parentNode;
             select(newPiece.element);
           }
           // allows unselecting by clicking twice
@@ -681,11 +690,28 @@ async function promote(pawn,square){
           // allows captures, taking turns only selects own pieces
           else if(selectedPiece.piece.color == newPiece.element.piece.color){
             selectedPiece = newPiece.element;
+            OGSquare = selectedPiece.parentNode;
             select(newPiece.element);
           }
 
         });
-    updateTurn();
+
+    //remains of updateTurn()
+    selectedPiece = null;
+    enPassant = false;
+    if(currentColor=='white'){
+      currentColor = 'black';
+    } else {currentColor='white';}
+    flipBoard();
+    //update kingInCheck
+    if (currentColor != 'white'){
+      upcomingKing = document.querySelector('.king.black-enemy');
+    } else {upcomingKing = document.querySelector('.king.white-enemy');}
+    if (upcomingKing.piece.isInCheck()){
+      kingInCheck = true;
+      console.log('Check!');
+      upcomingKing.parentNode.classList.add('red');
+    }
 
     } catch (error) {
       // if the user clicks 'close', cancel the move
@@ -694,19 +720,99 @@ async function promote(pawn,square){
 }
 }
 
-function updateTurn(){
-  selectedPiece = null;
-  enPassant = false;
-  isWhiteTurn = !isWhiteTurn;
-  //flipBoard();
+function updateTurn(piece,square){
 
-  //update kingInCheck
-  if (!isWhiteTurn){
-    upcomingKing = document.querySelector('.king.black-enemy');
-  } else {upcomingKing = document.querySelector('.king.white-enemy');}
-  if (upcomingKing.piece.isInCheck()){
-    kingInCheck = true;
-    console.log('Check!');
+  square.appendChild(piece);
+
+  let currentKing = document.querySelector(`.${currentColor}-enemy.king`);
+  if(currentKing.piece.isInCheck()){
+    console.log('In Check!');
+    flashSquare(currentKing.parentNode);
+    OGSquare.appendChild(piece);
+  } else{
+    currentKing.parentNode.classList.remove('red');
+    yellowPaint(OGSquare,square);
+    selectedPiece = null;
+    enPassant = false;
+    if(currentColor=='white'){
+      currentColor = 'black';
+    } else {currentColor='white';}
+    flipBoard();
+
+    //update kingInCheck
+    if (currentColor != 'white'){
+      upcomingKing = document.querySelector('.king.black-enemy');
+    } else {upcomingKing = document.querySelector('.king.white-enemy');}
+    if (upcomingKing.piece.isInCheck()){
+      kingInCheck = true;
+      console.log('Check!');
+      upcomingKing.parentNode.classList.add('red');
+    }
+  }
+}
+
+function updateTurnCAP(piece,square){
+
+  let OGPiece = square.children[0];
+  square.replaceChild(piece,square.children[0]);
+
+  let currentKing = document.querySelector(`.${currentColor}-enemy.king`);
+  if(currentKing.piece.isInCheck()){
+    console.log('In Check!');
+    flashSquare(currentKing.parentNode);
+    OGSquare.appendChild(piece);
+    square.appendChild(OGPiece);
+  } else{
+    currentKing.parentNode.classList.remove('red');
+    yellowPaint(OGSquare,square);
+    selectedPiece = null;
+    enPassant = false;
+    if(currentColor=='white'){
+      currentColor = 'black';
+    } else {currentColor='white';}
+    flipBoard();
+
+    //update kingInCheck
+    if (currentColor != 'white'){
+      upcomingKing = document.querySelector('.king.black-enemy');
+    } else {upcomingKing = document.querySelector('.king.white-enemy');}
+    if (upcomingKing.piece.isInCheck()){
+      kingInCheck = true;
+      console.log('Check!');
+      upcomingKing.parentNode.classList.add('red');
+    }
+  }
+}
+
+function updateTurnEP(piece,square){
+
+  square.appendChild(piece);
+
+  let currentKing = document.querySelector(`.${currentColor}-enemy.king`);
+  if(currentKing.piece.isInCheck()){
+    console.log('In Check!');
+    flashSquare(currentKing.parentNode);
+    OGSquare.appendChild(piece);
+  } else{
+    currentKing.parentNode.classList.remove('red');
+    yellowPaint(OGSquare,square);
+    enPassantPiece.remove();
+    selectedPiece = null;
+    enPassant = false;
+    if(currentColor=='white'){
+      currentColor = 'black';
+    } else {currentColor='white';}
+    flipBoard();
+
+    //update kingInCheck
+    if (currentColor != 'white'){
+      upcomingKing = document.querySelector('.king.black-enemy');
+    } else {upcomingKing = document.querySelector('.king.white-enemy');}
+    if (upcomingKing.piece.isInCheck()){
+      kingInCheck = true;
+      console.log('Check!');
+      upcomingKing.parentNode.classList.add('red');
+    }
   }
 }
 
